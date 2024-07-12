@@ -2,8 +2,8 @@ name: Update schedule
 
 on:
   workflow_dispatch:
-  # schedule:
-  #   - cron: 5 * * * *
+  schedule:
+    - cron: 5 * * * *
 
 jobs:
   update-schedule:
@@ -13,6 +13,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install
       - run: bun index.ts
+      - run: mv out/kiev out/kyiv
 
       - name: Generate Directory Listings
         uses: jayanta525/github-pages-directory-listing@v4.0.0
