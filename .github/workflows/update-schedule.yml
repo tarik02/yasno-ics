@@ -1,0 +1,42 @@
+name: Update schedule
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: 5 * * * *
+
+jobs:
+  update-schedule:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: bun index.ts
+
+      - name: Generate Directory Listings
+        uses: jayanta525/github-pages-directory-listing@v4.0.0
+        with:
+          FOLDER: out
+
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact
+        with:
+          path: ./out
+
+  deploy:
+    needs: update-schedule
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
