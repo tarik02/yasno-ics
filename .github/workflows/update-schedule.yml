@@ -20,7 +20,7 @@ jobs:
           FOLDER: out
 
       - name: Upload pages artifact
-        uses: actions/upload-pages-artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./out
 
