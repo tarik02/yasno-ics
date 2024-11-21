@@ -1,19 +1,20 @@
-import { createEvent, createEvents } from "ics";
-import { writeFile, mkdir } from "node:fs/promises";
 import {
 	addDays,
 	addHours,
 	format,
-	getDate,
-	getMonth,
-	getYear,
-	startOfDay,
-	startOfWeek,
+	parse,
+	startOfWeek
 } from "date-fns";
+import { createEvents } from "ics";
+import { mkdir, writeFile } from "node:fs/promises";
 
 const data = await fetch(
 	"https://api.yasno.com.ua/api/v1/pages/home/schedule-turn-off-electricity",
 ).then((res) => res.json());
+
+const dailyScheduleComponent = data.components.find(
+	(it) => it.template_name === "electricity-outages-daily-schedule",
+);
 
 const scheduleComponent = data.components.find(
 	(it) => it.template_name === "electricity-outages-schedule",
@@ -22,6 +23,19 @@ const scheduleComponent = data.components.find(
 const now = new Date();
 const sow = startOfWeek(now, { weekStartsOn: 1 });
 
+const exceptions = {};
+
+for (const [cityName, citySchedule] of Object.entries(
+	dailyScheduleComponent?.dailySchedule,
+)) {
+	for (const [relativeDayName, relativeDayInfo] of Object.entries(citySchedule)) {
+		const dateStr = relativeDayInfo.title.match(/\d+\.\d+\.\d+/);
+		const date = parse(dateStr[0], 'd.M.y', now);
+
+		exceptions[cityName + '_' + format(date, 'yyyy.MM.dd')] = relativeDayInfo;
+	}
+}
+
 for (const [cityName, citySchedule] of Object.entries(
 	scheduleComponent.schedule,
 )) {
@@ -29,7 +43,12 @@ for (const [cityName, citySchedule] of Object.entries(
 		const rawEvents = [];
 
 		for (let dow = 0; dow < 7; ++dow) {
-			for (const event of groupSchedule[dow]) {
+			const exception = (
+				exceptions[cityName + '_' + format(addDays(sow, dow), 'yyyy.MM.dd')] ??
+				exceptions[cityName + '_' + format(addDays(sow, dow + 7), 'yyyy.MM.dd')]
+			);
+
+			for (const event of exception?.groups[groupName.replace(/group_/, '')] ?? groupSchedule[dow]) {
 				rawEvents.push({
 					type: event.type,
 					startDay: dow,
